@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+  
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Guo Guanzhi" />
+  
+  
+  <title>Java 并发 - Synchronized(一) | 大魔王丶</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="Java,并发,Java,并发,同步," />
+  
+
+  
+  <meta name="description" content="关于 Java 并发知识 Synchronized 关键字的一些学习笔记">
+
+  
+
+  
+    <script src="//cdn.jsdelivr.net/npm/leancloud-storage@3.11.1/dist/av-min.js" async></script>
+  
+
+  
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  
+
+  
+    <script src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+  
+
+  
+
+  <script>
+  // theme-ad's config script
+  // it can be used in every script
+  
+  window.AD_CONFIG = {
+    leancloud: {"appid":"Hyq9wkH495DgNHWhDQCOfQSp-gzGzoHsz","appkey":"WaR7nrzhliHj9aVwdQzkdlGd","comment":true,"count":true},
+    welcome: {"enable":false,"interval":30},
+    start_time: "2020-02-17",
+    passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
+    is_post: true,
+    lock: false,
+    author: "Guo Guanzhi",
+    share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
+    mathjax: true,
+    page_type: "",
+    root: "/"
+  };
+</script>
+
+  
+<script src="/vendor/sha256.min.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/index.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+
+
+  
+    <link rel="icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/images/favico.png">
+  
+
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  
+<link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/styles/components/highlight/highlight.css">
+
+
+  
+<meta name="generator" content="Hexo 4.2.0"></head>
+  <body>
+    <header class="site-header">
+  <div class="site-header-brand">
+    
+      <span class="site-header-brand-title">
+        <a href="/">大魔王丶</a>
+      </span>
+    
+    
+      <span class="site-header-brand-motto"> | 一个人,这么些年居然没有一句座右铭!</span>
+    
+  </div>
+  <div class="site-header-right">
+    <nav class="site-header-navigation">
+      
+        <a href="/" target="_self">首页</a>
+      
+        <a href="/archives/" target="_self">归档</a>
+      
+        <a href="/tags/" target="_self">标签</a>
+      
+        <a href="/categories/" target="_self">分类</a>
+      
+        <a href="/friends/" target="_self">友链</a>
+      
+        <a href="/about/" target="_self">关于</a>
+      
+    </nav>
+    <div class="site-header-btn">
+      
+        <a href="https://github.com/grandedevil/" target="_blank" id="site-github">
+          <i class="fa fa-github-alt"></i>
+        </a>
+      
+      <a href="javascript:void(0);" id="site-search">
+        <i class="fa fa-search"></i>
+      </a>
+      <a href="javascript:void(0);" id="site-nav-btn">
+        <i class="fa fa-ellipsis-v"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<nav class="table-content" id="site-nav">
+  <div class="table-content-title">
+    <span>导航</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc">
+      
+        <li class="toc-item">
+          <a href="/" target="_self">
+            首页
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/archives/" target="_self">
+            归档
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/tags/" target="_self">
+            标签
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/categories/" target="_self">
+            分类
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/friends/" target="_self">
+            友链
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/about/" target="_self">
+            关于
+          </a>
+        </li>
+      
+    </ol>
+  </div>
+</nav>
+<div id="site-process"></div>
+    <main>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2020-02-18
+    </span>
+    
+      <span>
+        | <a href="/categories/Java/"><i class="fa fa-bookmark"></i>Java</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    Java 并发 - Synchronized(一)
+  </h1>
+  
+  <article class="passage-article">
+    <h3 id="再探-a"><a href="#再探-a" class="headerlink" title="再探 a++"></a>再探 a++</h3><p>a++? 这是一个很容易的问题, 但是也是一个很多研究性的问题,就是我们再计算一个 <code>int</code> 类型的变量 <code>i</code> 时,让<code>i</code>不断的自增, 在我们正常的思维或者<code>正确</code>的思维来理解, <code>i</code> 肯定是不断的自增,这个没什么好怀疑的,但是在计算里边却不是这样子, 如下面程序</p>
+<ul>
+<li>单线程 a++</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> i = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">long</span> j = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">while</span> (<span class="keyword">true</span>)&#123;</span><br><span class="line">            i++;</span><br><span class="line">            j++;</span><br><span class="line">            <span class="keyword">if</span>(i &lt; <span class="number">0</span>)&#123;</span><br><span class="line">                <span class="comment">// i = -2147483648</span></span><br><span class="line">                System.out.println(<span class="string">"i = "</span> + i);</span><br><span class="line">                <span class="comment">// j = 2147483648</span></span><br><span class="line">                System.out.println(<span class="string">"j = "</span> + j);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过上面的程序, 为什么 <code>i</code> 在自增了 2147483648(在64位操作系统中测试的结果) 次之后变为一个负数呢,这个在正常的理解范围之内简直是不可能发生的事情,但是这个原因我相信很多人都是知道,是因为计算存储的数据的问题,计算采用的二进制的存储方式,并且规定了最高位为<code>1</code>的时候表示负数.那这样子的话,就很容易理解了, 就是因为<code>i</code>不断自增之后,最高位由0变成为1,所以一下子由正数变成为负数(具体过程,什么溢出这里就不过多的阐述).</p>
+<p>如上面所述的一样,很多问题很简单, 就像 a++ 这个表达式一样,简直是太常见,那我们来探讨a++的什么呢?</p>
+<p>首先我们先来看一个例子:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> a = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span>; j&lt;<span class="number">2</span>; j++)&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</span><br><span class="line">        a++;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// a = 2000</span></span><br></pre></td></tr></table></figure>
+
+<p>最终的结果 a = 2000 没有任何的疑问, 这个是在单线程的双重循环中实现的, 但是假设我们在 双线程的情况下,单循环来实现呢, 这样时间是不是会快一倍(粗略地可以这么认为)?</p>
+<ul>
+<li>两个线程执行 a++的效果</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> demo1;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.concurrent.atomic.AtomicInteger;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WhySynchronized</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> a = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 也可以使用同一把锁</span></span><br><span class="line">    <span class="keyword">private</span> Object lock = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> AtomicInteger number = <span class="keyword">new</span> AtomicInteger();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">            incr();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 增加操作, 利用同步代码块的方式</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">incr</span><span class="params">()</span> </span>&#123;</span><br><span class="line"><span class="comment">//        synchronized (lock)&#123;</span></span><br><span class="line">            a ++;</span><br><span class="line">        <span class="comment">// a = a + 1;</span></span><br><span class="line"><span class="comment">//        &#125;</span></span><br><span class="line">        <span class="comment">// 如果 target 不是同一个的话, 只能加 类锁</span></span><br><span class="line">        <span class="comment">// 类锁是synchronized所类型的一种.</span></span><br><span class="line"><span class="comment">//        synchronized (WhySynchronized.class)&#123;</span></span><br><span class="line"><span class="comment">//            a ++;</span></span><br><span class="line"><span class="comment">//        &#125;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建多个线程</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</span><br><span class="line">            WhySynchronized thread = <span class="keyword">new</span> WhySynchronized();</span><br><span class="line"></span><br><span class="line">            Thread thread1 = <span class="keyword">new</span> Thread(thread);</span><br><span class="line">            thread1.start();</span><br><span class="line">            Thread thread2 = <span class="keyword">new</span> Thread(thread);</span><br><span class="line">            thread2.start();</span><br><span class="line"></span><br><span class="line">            thread1.join();</span><br><span class="line">            thread2.join();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// output: 每一次输出的结果都不一样</span></span><br><span class="line">            System.out.println(<span class="string">"a = "</span>+ a);</span><br><span class="line">            a = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在个人的工作中,什么时候要使用多线程,无非就是觉得单个线程处理起来速率有点慢,需要对这个进行程序处理速率方面的提升,所以想到了多线程,但是多线程是一把双刃剑,处理不好往往给程序带来巨大的问题!</p>
+<ul>
+<li>问题分析</li>
+</ul>
+<p>其实在 &lt;&lt;Java 并发编程实战&gt;&gt; 一书中也举过这个 a++ (或者 ++a) 的相关例子, 为什么会出现问题?从上面的程序中看出来, 在整个<code>run()</code> 方法中除了 a++ 并没有别的操作, 那就是很容易想到,就是 a++ 这个操作在多线程的情况下执行出现了问题.</p>
+<p><strong>那么a++为什么会有问题呢?</strong></p>
+<p>有人就会想到 a++ 不就是一条语句吗, 执行还能有什么问题? 如果有问题换成 a = a+1不就得了吗? 其实 a = a+1 同样存在一样的问题, 所以到了这里就不是 a ++ 的问题啦,哈哈. </p>
+<p>那我们哔哔了辣么多,就直接来揭开谜底:</p>
+<p>实际上, a++ 看上面是一种很紧凑的写法, 但是在CPU底层操作来看实际上他是<code>一组复合的操作</code>: 读取-更新-写入 这样的操作系列.也就是说,某个线程在执行更新操作的时候,是需要依赖之前读取操作读到的数据的.所以问题就来啦,假设此时 a =10,  但两个线程(A, B) 都同时进行读取操作, 线程A和线程B理所当然读到的数据都是10, 由于线程调度(某种程度上,线程的调度是不可能人为控制)的问题, 线程A一直得到资源, 而线程B进入线程等待的状态就执行了好几次了这样的 <code>读取-更新-写入</code> 这样的操作组合, 那样的话a此时的数据肯定已经大于11, 这个时候线程B突然获取到线程执行权, 由于线程B之前读取的数据是10, 所以线程B对a的修改肯定是基于10来进行修改的, 那样线程B执行完整个<code>读取-更新-写入</code> 操作系列的结果 就是11, 那么此时a的值就会变更新成11, 而线程A之前完成的一些操作就被线程B的结果给覆盖啦, 当然在这个例子中线程B和线程A完全有可能互换身份, 所以这就是为什么两个线程在单个循环中执行10000次,但是最终的结果往往不等于20000的原因.因为a++ 这个操作存在<code>线程安全问题</code>.</p>
+<ul>
+<li>线程安全问题</li>
+</ul>
+<p>什么是线程安全问题?</p>
+<p>这个定义已经不属于Java的范畴啦, 百度一下就会有很多关于这个问题的讨论或者见解,如下面百度的结果:</p>
+<p><img src="http://q5w7qnxlj.bkt.clouddn.com/1582083091473.png" alt="1582083091473"></p>
+<p>但是如何对线程安全有一个明确的定义?</p>
+<p>在此,我借鉴了一下在Java编程中比较权威的书籍&lt;&lt;Java 并发编程实战&gt;&gt;(Java Concurrency in Practice ) 一书的定义:</p>
+<blockquote>
+<p>当多个线程访问某个类时, 不管运时环境采取什么的调度方式或者线程以何种方式进行交替执行, 并且在该主调的代码中(方法,或者语句)不需要任何额外的协同或者同步操作,都一直能得到最终正确结果, 那个该类就是线程安全的.</p>
+</blockquote>
+<p>总结一下上面定义的关键字:</p>
+<ul>
+<li><p>多线程</p>
+</li>
+<li><p>运行时环境</p>
+</li>
+<li><p>调度方式</p>
+</li>
+<li><p>同步</p>
+</li>
+</ul>
+<p>那么简单一点理解就是:</p>
+<blockquote>
+<p>就是当多个线程同时访问某个类的某个方法或者语句时, 这个访问应该指的是写操作(但是需要注意的时候,读操作有时候也会带来线程安全的隐患, 例如getX()时直接返回某个不可变对象的引用, 这个后面会讲到) ,我们不管代码的运行环境,比如Linux系统,Windows 系统, 或者32位,64位系统等这些运行环境,同时也不需要控制线程的执行顺序, 比如说两个线程A, B, B一定要等到A执行完才执行, 还有不需要将方法或者语句同步化(比如加锁等),等等,都不需要这一系列的额外控制, 最终都能一直得到正确结果, 那么就能不存在线程安全问题.</p>
+</blockquote>
+<ul>
+<li>拓展: 竞态条件</li>
+</ul>
+<p>关于什么是竞态条件?如何理解,请参考&lt;&lt;Java 并发编程实战&gt;&gt;一书.</p>
+<hr>
+<p>总结: 最后总结一下这个文章主要讲了什么:</p>
+<ul>
+<li>为什么在多线程的情况下 a++ 得不到预期的结果</li>
+<li>什么是线程安全问题</li>
+</ul>
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#再探-a"><span class="toc-text">再探 a++</span></a></li></ol>
+  </div>
+</aside>
+  
+    <aside class="passage-copyright">
+      <div>本文作者: 大魔王丶</div>
+      
+        <div>
+          原文链接: 
+          <a href="" target="_blank">http://grandedevil.github.io/passages/2020-02-18-Java%E5%B9%B6%E5%8F%91%20-%20Synchronized%20(%E4%B8%80)/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a> 许可协议. 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/Java/"><i class="fa fa-tags"></i>Java</a>
+     
+      <a href="/tags/%E5%B9%B6%E5%8F%91/"><i class="fa fa-tags"></i>并发</a>
+     
+      <a href="/tags/%E5%90%8C%E6%AD%A5/"><i class="fa fa-tags"></i>同步</a>
+    
+    </div>
+  
+</div>
+
+    </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
+    
+    <div class="site-footer-wrapper">
+  <footer class="site-footer">
+    
+    <div class="site-footer-info">
+      <i class="fa fa-clock-o"></i> 本站已稳定运行<span id="site-time"></span>
+    </div>
+    
+      <div class="site-footer-info">
+        <i class="fa fa-paw"></i> 您是本站第 <span id="site-count"></span> 位访客
+      </div>
+    
+    
+      <div class="site-footer-info">
+        <i class="fa fa-at"></i> Email: guoguanzhi1995@163.com
+      </div>
+    
+    <div class="site-footer-info">
+      <i class="fa fa-copyright"></i> 
+      2019 <a href="https://github.com/dongyuanxin/theme-ad/" target="_blank">Theme-AD</a>.
+      Created by <a href="https://godbmw.com/" target="_blank">GodBMW</a>.
+      All rights reserved.
+    </div>
+  </footer>
+</div>
+    <div id="site-layer" style="display:none;">
+  <div class="site-layer-content">
+    <div class="site-layer-header">
+      <span class="site-layer-header-title" id="site-layer-title"></span>
+      <i class="fa fa-close" id="site-layer-close"></i>
+    </div>
+    <div class="site-layer-body" id="site-layer-container">
+      <div class="site-layer-input" id="site-layer-search" style="display: none;">
+        <div class="site-layer-input-choose">
+          <a href="javascript:void(0);" title="Change Search Engine">Google</a>
+        </div>
+        <input type="text">
+        <i class="fa fa-search"></i>
+      </div>
+      
+      <div id="site-layer-welcome" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+    
+
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <a href="javascript:void(0);" data-enable="false">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <a href="/passages/hello-world/" data-enable="true">
+      <i class="fa fa-arrow-right"></i>
+    </a>
+  </div>
+  <div class="bottom-bar-right">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
+      <i class="fa fa-bars"></i>
+    </a>
+    
+      <a href="#site-comment" data-enable="true">
+        <i class="fa fa-commenting"></i>
+      </a>
+    
+    <a href="javascript:void(0);" id="site-toggle-share-btn">
+      <i class="fa fa-share-alt"></i>
+    </a>
+    
+    <a href="javascript:void(0);" id="back-top-btn">
+      <i class="fa fa-chevron-up"></i>
+    </a>
+  </div>
+</div>
+    <div id="share-btn">
+  
+    <a id="share-btn-twitter" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-twitter"></i>
+    </a>
+  
+  
+    <a id="share-btn-facebook" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-facebook"></i>
+    </a>
+  
+  
+    <a id="share-btn-weibo" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-weibo"></i>
+    </a>
+  
+  
+    <a id="share-btn-qq" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-qq"></i>
+    </a>
+  
+  
+    <a id="share-btn-wechat" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-wechat"></i>
+    </a>
+  
+</div>
+    
+
+
+
+
+
+    
+  </body>
+</html>
