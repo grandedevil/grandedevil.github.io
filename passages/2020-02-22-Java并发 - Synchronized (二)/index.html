@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+  
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Guo Guanzhi" />
+  
+  
+  <title>Java 并发 - Synchronized(二) | 大魔王丶</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="Java,并发,Java,并发,同步," />
+  
+
+  
+  <meta name="description" content="这里主要是阐述了如何解决 a++ 在多线程中遇到的问题">
+
+  
+
+  
+    <script src="//cdn.jsdelivr.net/npm/leancloud-storage@3.11.1/dist/av-min.js" async></script>
+  
+
+  
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  
+
+  
+    <script src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+  
+
+  
+
+  <script>
+  // theme-ad's config script
+  // it can be used in every script
+  
+  window.AD_CONFIG = {
+    leancloud: {"appid":"Hyq9wkH495DgNHWhDQCOfQSp-gzGzoHsz","appkey":"WaR7nrzhliHj9aVwdQzkdlGd","comment":true,"count":true},
+    welcome: {"enable":false,"interval":30},
+    start_time: "2020-02-17",
+    passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
+    is_post: true,
+    lock: false,
+    author: "Guo Guanzhi",
+    share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
+    mathjax: true,
+    page_type: "",
+    root: "/"
+  };
+</script>
+
+  
+<script src="/vendor/sha256.min.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/index.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+
+
+  
+    <link rel="icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/images/favico.png">
+  
+
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  
+<link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/styles/components/highlight/highlight.css">
+
+
+  
+<meta name="generator" content="Hexo 4.2.0"></head>
+  <body>
+    <header class="site-header">
+  <div class="site-header-brand">
+    
+      <span class="site-header-brand-title">
+        <a href="/">大魔王丶</a>
+      </span>
+    
+    
+      <span class="site-header-brand-motto"> | 一个人,这么些年居然没有一句座右铭!</span>
+    
+  </div>
+  <div class="site-header-right">
+    <nav class="site-header-navigation">
+      
+        <a href="/" target="_self">首页</a>
+      
+        <a href="/archives/" target="_self">归档</a>
+      
+        <a href="/tags/" target="_self">标签</a>
+      
+        <a href="/categories/" target="_self">分类</a>
+      
+        <a href="/friends/" target="_self">友链</a>
+      
+        <a href="/about/" target="_self">关于</a>
+      
+    </nav>
+    <div class="site-header-btn">
+      
+        <a href="https://github.com/grandedevil/" target="_blank" id="site-github">
+          <i class="fa fa-github-alt"></i>
+        </a>
+      
+      <a href="javascript:void(0);" id="site-search">
+        <i class="fa fa-search"></i>
+      </a>
+      <a href="javascript:void(0);" id="site-nav-btn">
+        <i class="fa fa-ellipsis-v"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<nav class="table-content" id="site-nav">
+  <div class="table-content-title">
+    <span>导航</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc">
+      
+        <li class="toc-item">
+          <a href="/" target="_self">
+            首页
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/archives/" target="_self">
+            归档
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/tags/" target="_self">
+            标签
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/categories/" target="_self">
+            分类
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/friends/" target="_self">
+            友链
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/about/" target="_self">
+            关于
+          </a>
+        </li>
+      
+    </ol>
+  </div>
+</nav>
+<div id="site-process"></div>
+    <main>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2020-02-18
+    </span>
+    
+      <span>
+        | <a href="/categories/Java/"><i class="fa fa-bookmark"></i>Java</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    Java 并发 - Synchronized(二)
+  </h1>
+  
+  <article class="passage-article">
+    <h3 id="如何解决-a-的问题"><a href="#如何解决-a-的问题" class="headerlink" title="如何解决 a++的问题"></a>如何解决 a++的问题</h3><h4 id="使用原子类java-util-concurrent-atomic-包下原子类进行解决"><a href="#使用原子类java-util-concurrent-atomic-包下原子类进行解决" class="headerlink" title="使用原子类java.util.concurrent.atomic 包下原子类进行解决"></a>使用原子类<code>java.util.concurrent.atomic</code> 包下原子类进行解决</h4><ul>
+<li><p>问题解决方案一: 使用原子类</p>
+<ul>
+<li>问题解决</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TheSolution4Atomic</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> AtomicInteger atomicInteger = <span class="keyword">new</span> AtomicInteger();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">            incr();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">incr</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 相当于 a++</span></span><br><span class="line">        <span class="comment">// 先获取 再 ++</span></span><br><span class="line">        <span class="comment">// a++ 实现的原理</span></span><br><span class="line">        <span class="comment">// int tmp = a</span></span><br><span class="line">        <span class="comment">// a = a + 1</span></span><br><span class="line">        <span class="comment">// return tmp</span></span><br><span class="line">        atomicInteger.getAndIncrement();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        TheSolution4Atomic demo = <span class="keyword">new</span> TheSolution4Atomic();</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">2000</span>; i++) &#123;</span><br><span class="line">            Thread thread1 = <span class="keyword">new</span> Thread(demo);</span><br><span class="line">            Thread thread2 = <span class="keyword">new</span> Thread(demo);</span><br><span class="line">            thread1.start();</span><br><span class="line">            thread2.start();</span><br><span class="line">            thread1.join();</span><br><span class="line">            thread2.join();</span><br><span class="line">            System.out.println(<span class="string">"value "</span> + atomicInteger.get());</span><br><span class="line">            atomicInteger = <span class="keyword">new</span> AtomicInteger();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>什么是原子性</li>
+</ul>
+<blockquote>
+<p>上面所有用到的 <code>java.util.concurrent.atomic</code>  这个包下的类型都是能保证单个变量在多线程的下的线程安全.</p>
+</blockquote>
+<blockquote>
+<p>Java8官方: A small toolkit of classes that support lock-free thread-safe programming on single variables. </p>
+</blockquote>
+<blockquote>
+<p>那什么是原子性呢?</p>
+<p>原子性说简单点就是同生共死, 也就是具有全部完成或者全部失败这两种特点.如果还有第三种情况呢?就是部分失败,部分成功?这种情况是不可能存在.</p>
+<p><code>注意:原子性和原子操作的概念还是不一样,原子操作是指具有原子性的一组操作!如事务, 一个鲜明的特点就是原子性</code></p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><p>什么是CAS算法</p>
+<ul>
+<li><p>什么是 CAS</p>
+<p>CAS(Compare And Swap 比较和交换), 这个概念不重要, 重要的要了解<code>什么是 CAS算法</code> </p>
+</li>
+<li><p>什么是CAS算法</p>
+<p>假设某个线程要修改主存中的变量V, 那么这个线程先在线程的独立存储的中备份一份变量V的值为A, 然后开始对变量V进行更新等一系列的操作,假设最终得到一个值为B, 但是变量A是不会操作, 当线程的更新操作完成, 线程先拿着A和V进行比较, 如果 A==V, 就会将B更新到V中, 否则不修改, 重新上面的操作.</p>
+<p>需要注意的一点就是, 就是 (if A==V, do V=B) 这个过程是原子性, 这个是由CPU底层的<code>cmpxchg系列指令</code>完成的.</p>
+<p>以上涉及的三个操作数:</p>
+<ul>
+<li>主存操作数: V (相当于旧版本号)</li>
+<li>线程备份数: A (要更新的版本号,对应上面的版本号, 只要该版本号跟它要修改的版本号一致才会进行修改)</li>
+<li>线程更新数: B</li>
+</ul>
+</li>
+<li><p>拓展: <code>乐观锁</code>(常见的版本的概念)</p>
+</li>
+<li><p>拓展: 对比 <code>Synchronized 悲观锁</code></p>
+</li>
+<li><p>拓展: 什么是 <code>CAS自旋</code></p>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><p>问题解决方案二: 使用<code>Synchronized</code> 互斥锁</p>
+<ul>
+<li>问题解决</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TheSolution4Synchronized</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> a = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">            incr();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">incr</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 这个里的锁对象,指的是 run() 中的target</span></span><br><span class="line">        <span class="keyword">synchronized</span> (<span class="keyword">this</span>)&#123;</span><br><span class="line">            a++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line"></span><br><span class="line">        TheSolution4Synchronized demo = <span class="keyword">new</span> TheSolution4Synchronized();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">2000</span>; i++) &#123;</span><br><span class="line"></span><br><span class="line">            Thread thread1 = <span class="keyword">new</span> Thread(demo);</span><br><span class="line">            Thread thread2 = <span class="keyword">new</span> Thread(demo);</span><br><span class="line"></span><br><span class="line">            thread1.start();</span><br><span class="line">            thread2.start();</span><br><span class="line"></span><br><span class="line">            thread1.join();</span><br><span class="line">            thread2.join();</span><br><span class="line"></span><br><span class="line">            System.out.println(<span class="string">"value "</span> + a);</span><br><span class="line"></span><br><span class="line">            a = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+</li>
+</ul>
+<ul>
+<li><p><code>Synchronized</code>互斥锁的类型</p>
+<ul>
+<li><p>什么是 Synchronized</p>
+<p><code>Synchronized</code>, 同步的意思, 也就是正确的使用关键字的话,可以使多线程的使用达到同步执行的效果.</p>
+<p>并且,<code>Synchronized</code> 关键是可以使用在 <code>代码块(Code Block)</code> 和 <code>方法(Method)</code> 上的.</p>
+<p>具体在代码块和方法上的表现,我们从下面两种类型的锁开始说.</p>
+</li>
+<li><p>对象锁</p>
+<p>对象锁, 是<code>Synchronized</code>关键字在同步代码块和非静态方法上的表现. 这个对象能够起到作用是在 多个线程的 <code>target</code>    一样的情况才行.</p>
+<p>如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 也可以使用 this</span></span><br><span class="line"><span class="keyword">synchronized</span>(lock)&#123;</span><br><span class="line">	</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 默认该锁是this</span></span><br><span class="line"><span class="function"><span class="keyword">synchronized</span> <span class="title">method1</span><span class="params">()</span></span>&#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>类锁</p>
+<p>在 <code>target</code> 不一样的情况下, 如果多个对象的Class的对象一致,那样的话就可以使用类锁来保证同步.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">...</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">        incr();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">incr</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这个里的锁对象,指的是 run() 中的target</span></span><br><span class="line">    <span class="comment">// 这里如果将 this 置为一个对象结果也是一样的</span></span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>)&#123;</span><br><span class="line">        a++;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line"></span><br><span class="line">        TheSolution4Synchronized demo = <span class="keyword">new</span> TheSolution4Synchronized();</span><br><span class="line">        TheSolution4Synchronized demo1 = <span class="keyword">new</span> TheSolution4Synchronized();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">2000</span>; i++) &#123;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 如这里所示, target 是不一样的, 还用对象对话,是不能保证线程安全的</span></span><br><span class="line">            Thread thread1 = <span class="keyword">new</span> Thread(demo);</span><br><span class="line">            Thread thread2 = <span class="keyword">new</span> Thread(demo1);</span><br><span class="line"></span><br><span class="line">            thread1.start();</span><br><span class="line">            thread2.start();</span><br><span class="line">            thread1.join();</span><br><span class="line">            thread2.join()</span><br><span class="line">            System.out.println(<span class="string">"value "</span> + a);</span><br><span class="line">            a = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>修正为:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">incr</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里将上面的 对象改为对象锁即可</span></span><br><span class="line">    <span class="keyword">synchronized</span> (TheSolution4Synchronized<span class="class">.<span class="keyword">class</span>)</span>&#123;</span><br><span class="line">        a++;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 以上是类锁的一种表现形式, 还有另外一种表现形式,就是在静态代码块中的使用</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">incr</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这个里的锁对象,指的是 run() 中的target</span></span><br><span class="line">    <span class="comment">//        synchronized (TheSolution4Synchronized.class)&#123;</span></span><br><span class="line">    a++;</span><br><span class="line">    <span class="comment">//        &#125;</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 以上两种形式都可以保证在多线程下, target 不一样, 但是class一样的线程安全.</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>总结: 以上阐述了如何解决 a++的多线程问题</p>
+</li>
+</ul>
+</li>
+</ul>
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#如何解决-a-的问题"><span class="toc-text">如何解决 a++的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#使用原子类java-util-concurrent-atomic-包下原子类进行解决"><span class="toc-text">使用原子类java.util.concurrent.atomic 包下原子类进行解决</span></a></li></ol></li></ol>
+  </div>
+</aside>
+  
+    <aside class="passage-copyright">
+      <div>本文作者: 大魔王丶</div>
+      
+        <div>
+          原文链接: 
+          <a href="" target="_blank">http://grandedevil.github.io/passages/2020-02-22-Java%E5%B9%B6%E5%8F%91%20-%20Synchronized%20(%E4%BA%8C)/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a> 许可协议. 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/Java/"><i class="fa fa-tags"></i>Java</a>
+     
+      <a href="/tags/%E5%B9%B6%E5%8F%91/"><i class="fa fa-tags"></i>并发</a>
+     
+      <a href="/tags/%E5%90%8C%E6%AD%A5/"><i class="fa fa-tags"></i>同步</a>
+    
+    </div>
+  
+</div>
+
+    </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
+    
+    <div class="site-footer-wrapper">
+  <footer class="site-footer">
+    
+    <div class="site-footer-info">
+      <i class="fa fa-clock-o"></i> 本站已稳定运行<span id="site-time"></span>
+    </div>
+    
+      <div class="site-footer-info">
+        <i class="fa fa-paw"></i> 您是本站第 <span id="site-count"></span> 位访客
+      </div>
+    
+    
+      <div class="site-footer-info">
+        <i class="fa fa-at"></i> Email: guoguanzhi1995@163.com
+      </div>
+    
+    <div class="site-footer-info">
+      <i class="fa fa-copyright"></i> 
+      2019 <a href="https://github.com/dongyuanxin/theme-ad/" target="_blank">Theme-AD</a>.
+      Created by <a href="https://godbmw.com/" target="_blank">GodBMW</a>.
+      All rights reserved.
+    </div>
+  </footer>
+</div>
+    <div id="site-layer" style="display:none;">
+  <div class="site-layer-content">
+    <div class="site-layer-header">
+      <span class="site-layer-header-title" id="site-layer-title"></span>
+      <i class="fa fa-close" id="site-layer-close"></i>
+    </div>
+    <div class="site-layer-body" id="site-layer-container">
+      <div class="site-layer-input" id="site-layer-search" style="display: none;">
+        <div class="site-layer-input-choose">
+          <a href="javascript:void(0);" title="Change Search Engine">Google</a>
+        </div>
+        <input type="text">
+        <i class="fa fa-search"></i>
+      </div>
+      
+      <div id="site-layer-welcome" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+    
+
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <a href="/passages/2020-02-18-Java%E5%B9%B6%E5%8F%91%20-%20Synchronized%20(%E4%B8%80)/" data-enable="true">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <a href="javascript:void(0);" data-enable="false">
+      <i class="fa fa-arrow-right"></i>
+    </a>
+  </div>
+  <div class="bottom-bar-right">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
+      <i class="fa fa-bars"></i>
+    </a>
+    
+      <a href="#site-comment" data-enable="true">
+        <i class="fa fa-commenting"></i>
+      </a>
+    
+    <a href="javascript:void(0);" id="site-toggle-share-btn">
+      <i class="fa fa-share-alt"></i>
+    </a>
+    
+    <a href="javascript:void(0);" id="back-top-btn">
+      <i class="fa fa-chevron-up"></i>
+    </a>
+  </div>
+</div>
+    <div id="share-btn">
+  
+    <a id="share-btn-twitter" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-twitter"></i>
+    </a>
+  
+  
+    <a id="share-btn-facebook" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-facebook"></i>
+    </a>
+  
+  
+    <a id="share-btn-weibo" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-weibo"></i>
+    </a>
+  
+  
+    <a id="share-btn-qq" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-qq"></i>
+    </a>
+  
+  
+    <a id="share-btn-wechat" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-wechat"></i>
+    </a>
+  
+</div>
+    
+
+
+
+
+
+    
+  </body>
+</html>
